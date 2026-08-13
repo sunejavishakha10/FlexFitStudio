@@ -5,21 +5,23 @@ import { trpc } from "@/lib/trpc";
 import { formatDateTime } from "@/lib/format";
 
 interface RescheduleModalProps {
-  isOpen: boolean;
+  booking?: any;
+  isOpen?: boolean;
   onClose: () => void;
-  fromBookingId: number;
-  fromClassName: string;
-  fromClassTime: string;
-  onSuccess: () => void;
+  fromBookingId?: number;
+  fromClassName?: string;
+  fromClassTime?: string;
+  onSuccess?: () => void;
 }
 
 export function RescheduleModal({
-  isOpen,
+  booking,
+  isOpen = true,
   onClose,
-  fromBookingId,
-  fromClassName,
-  fromClassTime,
-  onSuccess,
+  fromBookingId = 0,
+  fromClassName = "",
+  fromClassTime = "",
+  onSuccess = () => {},
 }: RescheduleModalProps) {
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
