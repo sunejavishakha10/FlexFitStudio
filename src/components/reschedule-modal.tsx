@@ -21,7 +21,7 @@ export function RescheduleModal({
   fromBookingId = 0,
   fromClassName = "",
   fromClassTime = "",
-  onSuccess = () => {},
+  onSuccess = () => { },
 }: RescheduleModalProps) {
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
