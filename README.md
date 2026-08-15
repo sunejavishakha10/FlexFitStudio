@@ -13,7 +13,7 @@ This repository documents an exhaustive architectural refactoring of a legacy co
 ---
 
 ## 🎥 Video Walkthrough & Technical Demo
-👉 [Watch the Full Technical Architecture & Codebase Walkthrough](PASTE_YOUR_VIDEO_LINK_HERE)
+👉 [Watch the Full Technical Architecture & Codebase Walkthrough](https://loom.com/share/455da35f8ced4710bb81849b66147e55)
 
 ---
 
