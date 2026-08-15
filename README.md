@@ -17,141 +17,327 @@ This repository documents an exhaustive architectural refactoring of a legacy co
 
 ---
 
-## 🏛️ Architectural Defense & Structural Decisions
+## ✨ Features
 
-The primary engineering goal was to transition from an unmaintainable multi-responsibility layout to a modular, predictable codebase without breaking runtime behavior.
+### 👤 Member Experience
 
-### 1. Monolith Decomposition & Single Responsibility Principle (SRP)
-* **Problem in Legacy Code:** Core pages combined data-fetching hooks, layout rendering, modal trigger state, and raw calculation logic in 600+ line files.
-* **Refactored Architecture:** Decoupled the UI into focused subcomponents (`src/components/`):
-  * `dashboard-stats.tsx`: Dynamically computes role-based metrics (member credits, trainer roster counts, studio revenue) without polluting page-level lifecycle methods.
-  * `reschedule-modal.tsx`: Isolates modal open/close states, input validation, and mutation triggers, preventing parent page re-renders.
-  * `class-card.tsx` & `plan-card.tsx`: Standalone presentational components with self-contained styling and explicit interaction handlers.
+* Browse available fitness classes and schedules
+* Book classes using membership credits
+* View active and upcoming bookings
+* Cancel or reschedule eligible bookings
+* Join and manage class waitlists
+* View membership plans and credit information
+* Access notifications and account information
 
-### 2. End-to-End Type Safety & Elimination of `any` Assertions
-* **Problem in Legacy Code:** Implicit `any` types and mismatched interface definitions caused fatal compilation failures during production build runs (`pnpm build`).
-* **Refactored Architecture:** Established strict TypeScript interfaces across all components (e.g., `RescheduleModalProps`, `DashboardStatsProps`) and leveraged tRPC's end-to-end type inference to bridge Drizzle ORM database schemas directly with frontend state.
+### 🧑‍🏫 Trainer Experience
 
-### 3. State Management & Zero-Regression Guardrails
-* **Preserved Business Invariants:** 
-  * Class credit deductions remain strictly synchronous with booking actions.
-  * Waitlist promotions trigger deterministically upon spot cancellations.
-  * Role-Based Access Control (RBAC) boundaries between Member, Trainer, and Admin views remain identical in logic and routing behavior.
-* **Database Model Stability:** Retained SQLite with Drizzle ORM at the persistence layer, avoiding unnecessary data migration risks while ensuring full compile-time schema validation.
+* Access trainer-specific schedules
+* View assigned classes
+* Manage trainer availability
+* View class and member information
+* Support attendance-related studio workflows
 
----
+### 🛠️ Admin Experience
 
-## 📊 Legacy vs. Refactored Codebase Comparison
+* Access administrative dashboards
+* Review studio and membership information
+* Manage members and roles
+* Review payment and revenue-related information
+* Manage corporate/company-related studio records
 
-| Dimension | Legacy Implementation | Refactored Architecture (Current) |
-| :--- | :--- | :--- |
-| **Component Structure** | Monolithic, mixed concerns (600+ LOC files) | Modular, decoupled components (<150 LOC each) |
-| **Type Safety** | Loose types, implicit `any`, build failures | 100% strict TypeScript compliance (`pnpm build` passes) |
-| **State Coupling** | Parent pages managed internal child modal state | Localized state encapsulation via clean prop contracts |
-| **Maintainability** | High cognitive load, duplicate business logic | Clear separation of `app/`, `components/`, `server/`, `db/` |
-| **Business Logic Parity** | Fragile | **100% Preserved** (Identical inputs, outputs, error states) |
+### 📋 Booking & Waitlist Logic
 
----
-
-## 🛠️ Complete Tech Stack
-
-| Category | Technology | Architectural Role |
-| :--- | :--- | :--- |
-| **Framework** | **Next.js 15 (App Router)** | Server Components (RSC), optimized client hydration, and routing |
-| **Language** | **TypeScript 5.x (Strict)** | Compile-time validation, static type contracts, zero runtime overhead |
-| **API Layer** | **tRPC v11** | End-to-end typesafe RPC calls without schema generators or boilerplate |
-| **Database** | **SQLite (Better-SQLite3)** | Embedded, high-performance relational persistence layer |
-| **ORM** | **Drizzle ORM** | Lightweight, type-safe SQL query builder and schema declarations |
-| **Styling** | **Tailwind CSS** | Atomic, maintainable utility design tokens with zero runtime CSS |
-| **Package Manager** | **pnpm** | Fast, deterministic workspace dependency management |
+* Credit balance is checked before eligible bookings are confirmed
+* Class capacity is enforced during booking
+* Full classes can use waitlist flows
+* Cancellations can trigger progression of members from the waitlist
+* Rescheduling is handled through a dedicated workflow
+* Booking and credit rules are implemented in the server-side tRPC procedures
 
 ---
 
-## 📂 System File Hierarchy
+## 🏗️ Architecture
+
+The application uses a modular Next.js App Router architecture with clear separation between presentation, database access, and server-side business logic.
 
 ```text
 FlexFitStudio/
 ├── documents/
-│   └── REFACTORING_NOTES.md     # In-depth technical decisions and audit logs
+│   ├── .gitkeep
+│   └── REFACTORING_NOTES.md
+│
 ├── src/
-│   ├── app/                     # Next.js 15 App Router endpoints
-│   │   ├── waitlist/            # Waitlist queue and assignment views
-│   │   ├── layout.tsx           # Global application root layout
-│   │   ├── page.tsx             # Studio main dashboard & class schedule view
-│   │   ├── providers.tsx        # tRPC client & React Query context providers
-│   │   └── globals.css          # Global styling tokens
-│   ├── components/              # Decoupled, reusable presentation components
-│   │   ├── class-card.tsx       # Class schedule tile with booking trigger
-│   │   ├── dashboard-stats.tsx  # Dynamic role-based analytics cards
-│   │   ├── hero-section.tsx     # Studio banner header
-│   │   ├── NavBar.tsx           # Global responsive navigation
-│   │   ├── plan-card.tsx        # Membership subscription tier display
-│   │   └── reschedule-modal.tsx # Booking rescheduling modal handler
-│   ├── db/                      # Drizzle ORM schema and database connectivity
-│   ├── lib/                     # Client helper utilities & tRPC vanilla client
-│   └── server/                  # tRPC routers, procedures, and context
-├── drizzle.config.ts            # Drizzle ORM migration configuration
-├── next.config.mjs              # Next.js runtime configuration
-├── package.json                 # Dependency manifest
-├── pnpm-lock.yaml               # Pinned dependency lockfile
-├── tailwind.config.ts           # Design system configuration
-└── tsconfig.json                # Strict TypeScript configuration
+│   ├── app/
+│   │   ├── admin/
+│   │   ├── api/
+│   │   │   └── trpc/[trpc]/
+│   │   ├── dashboard/
+│   │   ├── kiosk/
+│   │   ├── login/
+│   │   ├── notifications/
+│   │   ├── plans/
+│   │   ├── schedule/
+│   │   ├── trainer/
+│   │   │   └── schedule/
+│   │   ├── waitlist/
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   └── providers.tsx
+│   │
+│   ├── components/
+│   │   ├── NavBar.tsx
+│   │   ├── class-card.tsx
+│   │   ├── dashboard-stats.tsx
+│   │   ├── hero-section.tsx
+│   │   ├── plan-card.tsx
+│   │   └── reschedule-modal.tsx
+│   │
+│   ├── db/
+│   │   ├── index.ts
+│   │   ├── schema.ts
+│   │   └── seed.ts
+│   │
+│   ├── lib/
+│   │
+│   └── server/
+│       ├── routers/
+│       │   ├── _app.ts
+│       │   ├── admin.ts
+│       │   ├── admin-companies.ts
+│       │   ├── auth.ts
+│       │   ├── bookings.ts
+│       │   ├── classes.ts
+│       │   ├── corporate-bookings.ts
+│       │   ├── members.ts
+│       │   ├── notifications.ts
+│       │   ├── payments.ts
+│       │   ├── plans.ts
+│       │   ├── reschedules.ts
+│       │   └── trainers.ts
+│       └── trpc.ts
+│
+├── drizzle.config.ts
+├── next.config.mjs
+├── package.json
+├── pnpm-lock.yaml
+├── pnpm-workspace.yaml
+├── postcss.config.mjs
+├── tailwind.config.ts
+└── tsconfig.json
+```
 
 ---
 
-## 🚀 Setup and Execution Guide
+## 🧩 Component Architecture
+
+The refactoring separates previously concentrated page responsibilities into focused components.
+
+| Component              | Responsibility                                                  |
+| ---------------------- | --------------------------------------------------------------- |
+| `dashboard-stats.tsx`  | Displays role-aware dashboard metrics                           |
+| `reschedule-modal.tsx` | Encapsulates rescheduling interaction and mutation flow         |
+| `class-card.tsx`       | Displays class information, capacity state, and booking actions |
+| `plan-card.tsx`        | Displays membership and credit-pack information                 |
+| `hero-section.tsx`     | Provides the main promotional/hero presentation                 |
+| `NavBar.tsx`           | Provides global navigation and role-aware navigation indicators |
+
+The refactoring also introduced explicit component prop interfaces, including `DashboardStatsProps` and `RescheduleModalProps`, reducing reliance on loosely typed component boundaries.
+
+---
+
+## 🔌 Server Architecture
+
+Server-side functionality is organized into domain-specific **tRPC routers**:
+
+| Router                  | Responsibility                                              |
+| ----------------------- | ----------------------------------------------------------- |
+| `auth.ts`               | Authentication and session-related procedures               |
+| `bookings.ts`           | Booking, cancellation, credit, capacity, and waitlist logic |
+| `classes.ts`            | Class and schedule operations                               |
+| `members.ts`            | Member information and credit-related operations            |
+| `plans.ts`              | Membership and plan operations                              |
+| `reschedules.ts`        | Booking rescheduling workflows                              |
+| `trainers.ts`           | Trainer scheduling and availability                         |
+| `notifications.ts`      | Notification-related procedures                             |
+| `payments.ts`           | Payment and transaction records                             |
+| `admin.ts`              | Administrative operations and reporting                     |
+| `admin-companies.ts`    | Company/corporate administration                            |
+| `corporate-bookings.ts` | Corporate booking procedures                                |
+
+The root application router combines these domain routers into the application's typed API surface.
+
+---
+
+## 🗄️ Data Layer
+
+FlexFit Studio uses:
+
+* **SQLite/libSQL** for relational persistence
+* **`@libsql/client`** for database connectivity
+* **Drizzle ORM** for schema definitions and type-safe database queries
+* A centralized schema under `src/db/schema.ts`
+* Seed data through `src/db/seed.ts`
+
+The database client uses `DB_FILE` when provided and otherwise defaults to the local `flexfit.db` database file.
+
+---
+
+## 🛠️ Tech Stack
+
+| Category        | Technology           | Purpose                                         |
+| --------------- | -------------------- | ----------------------------------------------- |
+| Framework       | Next.js 15           | App Router and full-stack application framework |
+| UI              | React 19             | Component-based user interface                  |
+| Language        | TypeScript 5.7       | Static typing and compile-time contracts        |
+| API             | tRPC v11             | Type-safe client/server communication           |
+| Validation      | Zod                  | Runtime input validation                        |
+| ORM             | Drizzle ORM          | Type-safe database access                       |
+| Database        | SQLite / libSQL      | Relational persistence                          |
+| Database Driver | `@libsql/client`     | SQLite/libSQL connectivity                      |
+| Client Cache    | TanStack React Query | Query caching and mutation lifecycle            |
+| Serialization   | SuperJSON            | Serialization for tRPC data                     |
+| Styling         | Tailwind CSS 3.4     | Utility-based styling                           |
+| Package Manager | pnpm                 | Dependency and workspace management             |
+| Testing         | Vitest               | Test runner included in the project             |
+
+---
+
+## 🔄 Legacy vs. Refactored Architecture
+
+The repository includes a dedicated engineering audit in `documents/REFACTORING_NOTES.md`.
+
+The documented baseline was approximately **5,400 lines of tightly coupled application code**, including large page files that combined data fetching, rendering, mutation handling, modal state, and business calculations.
+
+### Refactoring improvements
+
+| Area                  | Legacy Approach                                           | Refactored Approach                               |
+| --------------------- | --------------------------------------------------------- | ------------------------------------------------- |
+| Component structure   | Large pages with mixed responsibilities                   | Focused reusable components                       |
+| Type safety           | Loose typing and implicit `any` usage                     | Explicit component prop interfaces                |
+| UI state              | Modal and interaction state embedded in parent pages      | State localized within dedicated components       |
+| Server organization   | Business operations concentrated across larger procedures | Domain-specific tRPC routers                      |
+| Page responsibilities | Data, layout, state, and interaction combined             | Page-level orchestration with reusable components |
+| Client setup          | Scattered query/client configuration                      | Centralized tRPC and React Query provider setup   |
+
+The refactoring was designed to preserve the documented booking, credit, waitlist, role, and database rules while improving maintainability and separation of concerns.
+
+
+## 🚀 Getting Started
 
 ### Prerequisites
-* **Node.js**: `v20.x` or newer
-* **pnpm**: Installed globally via `npm install -g pnpm`
 
-### Step 1: Clone the Repository
+* Node.js
+* pnpm
+
+### 1. Clone the repository
+
 ```bash
-git clone [https://github.com/sunejavishakha10/FlexFitStudio.git](https://github.com/sunejavishakha10/FlexFitStudio.git)
+git clone https://github.com/sunejavishakha10/FlexFitStudio.git
 cd FlexFitStudio
+```
 
-Step 2: Install Workspace Dependencies
-Bash
+### 2. Install dependencies
+
+```bash
 pnpm install
-Step 3: Install & Seed Database
-Bash
+```
+
+### 3. Initialize the database
+
+```bash
 pnpm db:push
 pnpm db:seed
-Step 4: Launch Development Server
-Bash
+```
+
+### 4. Start the development server
+
+```bash
 pnpm dev
-Open http://localhost:3000 in your browser.
+```
 
-Step 5: Verify Production Type Safety & Build
-Bash
+Then open:
+
+```text
+http://localhost:3000
+```
+
+### 5. Create a production build
+
+```bash
 pnpm build
+```
+
+The repository also provides a Vitest test script:
+
+```bash
+pnpm test
+```
+
 ---
 
-⚠️ Known Limitations
-Single-Site Boundary: Scoped for single-location studio operations. Expanding across multiple franchise locations requires introducing composite branch/location keys into class and facility schedules.
+## ⚠️ Known Limitations
 
-Synchronous Booking Pipeline: Credit balance deductions and spot allocations operate synchronously. High-frequency concurrent flash booking drives would require transactional queuing (e.g., Redis-backed queues).
+### Single-site scope
 
-Local Storage Layer: Built on SQLite for zero-setup portability. Enterprise-scale deployment requires shifting the Drizzle dialect driver to PostgreSQL.
+The current data model is designed around a single studio/location. Supporting multiple studio branches would require extending the data model with location or branch relationships.
+
+### Synchronous booking flow
+
+Booking and credit operations currently execute through synchronous server-side procedures. Handling very high levels of simultaneous booking traffic would require stronger concurrency controls and/or transactional infrastructure.
+
+### Local SQLite/libSQL persistence
+
+The current persistence layer is intentionally lightweight and local. A larger production deployment could migrate the Drizzle database layer to a server-oriented relational database such as PostgreSQL.
+
+### External integrations
+
+The repository does not currently provide live integrations for external payment gateways, SMS/email notification providers, or background job infrastructure.
+
 ---
 
-🔮 Future Improvements
-Multi-Location Multi-Tenancy: Schema partitioning to support studio chains and multi-room facility management.
+## 🔮 Future Improvements
 
-Automated Waitlist Escalation: Background workers and webhooks to notify promoted waitlist members via SMS or email.
+Potential extensions include:
 
-Integrated Payment Gateways: Direct Stripe/Razorpay webhooks for recurring subscriptions and automatic credit top-ups.
+* Multi-location studio support
+* Multi-tenant architecture
+* Automated email/SMS waitlist notifications
+* Background job processing
+* Stripe or Razorpay payment integrations
+* Automated recurring membership billing
+* Expanded trainer analytics
+* Member retention reporting
+* More comprehensive automated testing
+* Stronger concurrency controls for high-volume booking
 
-Trainer Analytics Dashboard: Dedicated performance analytics tracking class attendance rates and member retention.
 ---
 
-🤖 AI Tool Disclosure
-AI Coding Assistance: Generative AI was used as an architectural copilot for drafting initial component separation boundaries, creating boilerplate TypeScript interfaces (RescheduleModalProps, DashboardStatsProps), and generating structural documentation matrices.
+## 🤖 AI Tool Usage Disclosure
 
-Engineering Ownership: All generated refactoring steps, component extractions, type resolutions, and build-time validations (pnpm build) were reviewed, integrated, and verified directly within the codebase.
+Generative AI was used as an architectural development aid during the refactoring process, including assistance with:
+
+* Initial component-separation planning
+* Boilerplate TypeScript interfaces
+* Structural documentation and refactoring matrices
+
+Engineering decisions, component extraction, type resolution, business-logic preservation, and build validation were reviewed and integrated into the repository.
+
 ---
 
-👤 Author & Repository Information
-Author: Vishakha Suneja
+## 📄 Engineering Audit
 
-Repository: https://github.com/sunejavishakha10/FlexFitStudio
+For the detailed refactoring history, component-by-component changes, preserved business rules, and verification notes, see:
+
+`documents/REFACTORING_NOTES.md`
+
+---
+
+## 👤 Author
+
+**Vishakha Suneja**
+
+Repository:
+https://github.com/sunejavishakha10/FlexFitStudio
+
+Primary branch: `main`
